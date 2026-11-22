@@ -1,13 +1,7 @@
 {
-    "dossier":  "C:\\server_file_net",
-    "generes":  "2026-11-12 18:47:16",
+    "dossier":  "Downloads",
+    "generes":  "2026-11-22 12:00:00",
     "fichiers":  [
-                     {
-                         "nom":  "actu.ps1",
-                         "chemin":  "actu.ps1",
-                         "taille":  1946,
-                         "modifie":  "2026-11-12 18:47:12"
-                     },
                      {
                          "nom":  "Explorater.exe",
                          "chemin":  "Explorater.exe",
