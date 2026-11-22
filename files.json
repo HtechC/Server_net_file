@@ -1,0 +1,24 @@
+{
+    "dossier":  "C:\\server_file_net",
+    "generes":  "2026-11-12 18:47:16",
+    "fichiers":  [
+                     {
+                         "nom":  "actu.ps1",
+                         "chemin":  "actu.ps1",
+                         "taille":  1946,
+                         "modifie":  "2026-11-12 18:47:12"
+                     },
+                     {
+                         "nom":  "Explorater.exe",
+                         "chemin":  "Explorater.exe",
+                         "taille":  555520,
+                         "modifie":  "2026-11-11 13:26:12"
+                     },
+                     {
+                         "nom":  "HtechC_profile_exemple.ico",
+                         "chemin":  "HtechC_profile_exemple.ico",
+                         "taille":  432254,
+                         "modifie":  "2026-11-10 18:32:34"
+                     }
+                 ]
+}
