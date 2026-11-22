@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serveur de fichiers — C:\serveur_web_fichier</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d6e63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.7.94L12.8 8H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'/%3E%3C/svg%3E">
+<meta name="description" content="Explorateur de fichiers du serveur local : recherche, tri et téléchargement.">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ Jetons de design ============ */
+:root,
+[data-theme='light'] {
+  --color-bg: #f2f4f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f9fa;
+  --color-surface-offset: #eceff2;
+  --color-divider: #e2e7ec;
+  --color-border: #d3dae0;
+  --color-text: #1c2733;
+  --color-text-muted: #5b6b7a;
+  --color-text-faint: #93a1ae;
+  --color-primary: #0d6e63;
+  --color-primary-hover: #0a574e;
+  --color-primary-highlight: #d7ece7;
+  --color-error: #a12c3d;
+  --shadow-sm: 0 1px 2px rgba(18, 30, 40, 0.06);
+  --shadow-md: 0 4px 14px rgba(18, 30, 40, 0.08);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --font-body: 'Satoshi', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-16: 4rem;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.375rem, 1.2rem + 0.9vw, 1.875rem);
+}
+[data-theme='dark'] {
+  --color-bg: #10161c;
+  --color-surface: #171f27;
+  --color-surface-2: #1c262f;
+  --color-surface-offset: #202b35;
+  --color-divider: #26323d;
+  --color-border: #374654;
+  --color-text: #d7dde3;
+  --color-text-muted: #8fa0af;
+  --color-text-faint: #5f7080;
+  --color-primary: #45b3a1;
+  --color-primary-hover: #6cc7b7;
+  --color-primary-highlight: #1d3a35;
+  --color-error: #e08393;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* ============ Base ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html {
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+body {
+  min-height: 100dvh;
+  line-height: 1.6;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+img, svg { display: block; max-width: 100%; height: auto; }
+input, button { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+[hidden] { display: none !important; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+::selection { background: var(--color-primary-highlight); }
+a, button, input { transition: color var(--transition-interactive), background var(--transition-interactive), border-color var(--transition-interactive), box-shadow var(--transition-interactive); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* ============ En-tête ============ */
+.entete { background: var(--color-surface); border-bottom: 1px solid var(--color-divider); }
+.entete-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;
+}
+.marque { display: flex; align-items: center; gap: var(--space-4); }
+.marque-logo { color: var(--color-primary); flex-shrink: 0; }
+.marque h1 { font-size: var(--text-xl); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; }
+.chemin { font-size: var(--text-sm); color: var(--color-text-muted); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.chemin code {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  background: var(--color-surface-offset); border: 1px solid var(--color-divider);
+  padding: 0.1rem 0.45rem; border-radius: var(--radius-sm);
+}
+.entete-actions { display: flex; align-items: center; gap: var(--space-2); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.55rem 1rem; min-height: 44px;
+  font-size: var(--text-sm); font-weight: 500;
+  border-radius: var(--radius-md); border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text);
+}
+.btn:hover { background: var(--color-surface-2); border-color: var(--color-text-faint); }
+.btn-icone {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: var(--radius-md);
+  color: var(--color-text-muted); border: 1px solid transparent;
+}
+.btn-icone:hover { background: var(--color-surface-offset); color: var(--color-text); }
+
+/* Statistiques */
+.stats {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-5);
+  display: flex; gap: var(--space-2); flex-wrap: wrap;
+}
+.stat {
+  display: inline-flex; align-items: baseline; gap: var(--space-2);
+  font-size: var(--text-sm); color: var(--color-text-muted);
+  background: var(--color-surface-offset);
+  border: 1px solid var(--color-divider);
+  padding: 0.3rem 0.8rem; border-radius: var(--radius-full);
+}
+.stat b { color: var(--color-text); font-weight: 700; font-size: var(--text-base); }
+
+/* ============ Contenu ============ */
+main { max-width: 1200px; margin: 0 auto; padding: var(--space-6); }
+@media (min-width: 640px) { main { padding: var(--space-8) var(--space-6); } }
+
+.banniere-demo {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--color-primary-highlight);
+  color: var(--color-text);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-5);
+}
+.banniere-demo svg { flex-shrink: 0; color: var(--color-primary); }
+
+/* Barre d'outils */
+.barre-outils {
+  display: flex; gap: var(--space-4); flex-wrap: wrap; align-items: center;
+  margin-bottom: var(--space-5);
+}
+.recherche {
+  flex: 1 1 280px; display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+.recherche:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-highlight); }
+.recherche svg { color: var(--color-text-faint); flex-shrink: 0; }
+.recherche input {
+  flex: 1; min-width: 0; border: none; background: none;
+  padding: 0.65rem 0; font-size: var(--text-sm); outline: none; min-height: 44px;
+}
+.recherche input::-webkit-search-cancel-button { display: none; }
+.recherche .effacer { display: none; }
+.recherche.remplie .effacer { display: inline-flex; }
+
+.filtres { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.puce {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.45rem 0.9rem; min-height: 44px;
+  font-size: var(--text-sm); font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--color-text-muted);
+}
+.puce:hover { border-color: var(--color-text-faint); color: var(--color-text); }
+.puce[aria-pressed='true'] {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+[data-theme='dark'] .puce[aria-pressed='true'] { color: #0e151b; }
+.puce .nb {
+  font-size: var(--text-xs); font-weight: 700;
+  background: rgba(127, 127, 127, 0.16); border-radius: var(--radius-full);
+  padding: 0.05rem 0.5rem;
+}
+.puce[aria-pressed='true'] .nb { background: rgba(255, 255, 255, 0.25); }
+[data-theme='dark'] .puce[aria-pressed='true'] .nb { background: rgba(0, 0, 0, 0.18); }
+
+/* ============ Tableau ============ */
+.carte-table {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.tableau-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-divider);
+  font-size: var(--text-xs); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--color-text-muted);
+  text-align: left; padding: var(--space-3) var(--space-4);
+  white-space: nowrap; user-select: none;
+}
+thead th.triable { cursor: pointer; }
+thead th.triable:hover { color: var(--color-text); }
+thead th .fleche { display: inline-block; margin-left: 0.25rem; opacity: 0; }
+thead th[aria-sort] .fleche { opacity: 1; color: var(--color-primary); }
+thead th[aria-sort='descending'] .fleche { transform: rotate(180deg); }
+
+tbody td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+  font-size: var(--text-sm);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background var(--transition-interactive); }
+tbody tr:hover { background: var(--color-surface-2); }
+
+.cell-nom { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.cell-nom svg { flex-shrink: 0; }
+.lien-nom {
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500;
+  color: var(--color-text); text-decoration: none;
+  overflow-wrap: break-word; min-width: 0;
+}
+.lien-nom:hover { color: var(--color-primary); text-decoration: underline; }
+td.emplacement { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+td.type { color: var(--color-text-muted); white-space: nowrap; }
+td.taille { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--color-text-muted); }
+td.modifie { color: var(--color-text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.btn-telecharger {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0.45rem 0.9rem; min-height: 40px;
+  font-size: var(--text-sm); font-weight: 500;
+  border-radius: var(--radius-md);
+  background: var(--color-primary); color: #fff;
+  text-decoration: none; white-space: nowrap;
+}
+[data-theme='dark'] .btn-telecharger { color: #0e151b; }
+.btn-telecharger:hover { background: var(--color-primary-hover); }
+
+/* Couleurs des catégories (icônes) */
+.cat-image { color: #2e7d9e; }
+.cat-video { color: #b4543c; }
+.cat-audio { color: #8a63b8; }
+.cat-pdf { color: #c0392b; }
+.cat-doc { color: #2b6cb0; }
+.cat-tableau { color: #2e8b57; }
+.cat-presentation { color: #d1780a; }
+.cat-archive { color: #8a7a4b; }
+.cat-code { color: #5b6b7a; }
+.cat-exe { color: #6b7280; }
+.cat-autre { color: var(--color-text-faint); }
+
+/* ============ États ============ */
+.etat {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: var(--space-16) var(--space-8); color: var(--color-text-muted);
+}
+.etat svg { margin-bottom: var(--space-4); color: var(--color-text-faint); }
+.etat h2 { font-size: var(--text-lg); color: var(--color-text); margin-bottom: var(--space-2); }
+.etat p { font-size: var(--text-sm); max-width: 52ch; }
+.etat p code {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  background: var(--color-surface-offset); padding: 0.1rem 0.4rem; border-radius: var(--radius-sm);
+}
+.etat-erreur h2 { color: var(--color-error); }
+
+/* Squelette de chargement */
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.squelette-ligne { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
+.squelette-barre {
+  height: 0.9rem; border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-surface-offset) 25%, var(--color-divider) 50%, var(--color-surface-offset) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.squelette-nom { display: flex; align-items: center; gap: var(--space-3); }
+.squelette-nom .squelette-barre:nth-child(1) { width: 1.4rem; height: 1.4rem; flex-shrink: 0; }
+.squelette-nom .squelette-barre:nth-child(2) { width: 38%; }
+
+.pied {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs); color: var(--color-text-faint);
+  display: flex; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 720px) {
+  .col-cachee-mobile { display: none; }
+  .entete-inner, .stats { padding-left: var(--space-4); padding-right: var(--space-4); }
+  main { padding: var(--space-5) var(--space-4); }
+  thead { display: none; }
+  tbody tr {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-divider);
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { display: block; border: none; padding: 0; }
+  tbody td:first-child { flex: 1 1 auto; min-width: 0; }
+  td.taille { flex-shrink: 0; font-size: var(--text-xs); }
+  td.action { flex-shrink: 0; }
+  .btn-telecharger { padding: 0.5rem 0.65rem; }
+  .btn-telecharger .libelle-btn { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <div class="entete-inner">
+    <div class="marque">
+      <svg class="marque-logo" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.7.94L12.8 8H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>
+        <path d="M4 13h16"/>
+      </svg>
+      <div>
+        <h1>Serveur de fichiers</h1>
+        <p class="chemin"><span>Dossier servi :</span> <code id="chemin-dossier">C:\serveur_web_fichier</code></p>
+      </div>
+    </div>
+    <div class="entete-actions">
+      <button type="button" class="btn" id="btn-actualiser">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+        Actualiser
+      </button>
+      <button type="button" class="btn-icone" id="btn-theme" aria-label="Basculer le thème clair ou sombre">
+        <svg id="icone-theme" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+      </button>
+    </div>
+  </div>
+  <div class="stats" id="stats" aria-live="polite"></div>
+</header>
+
+<main>
+  <div class="banniere-demo" id="banniere-demo" hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span><strong>Mode démonstration</strong> — données d'exemple. Générez votre <code id="nom-fichier-json" style="font-family:var(--font-mono)">files.json</code> pour afficher vos vrais fichiers.</span>
+  </div>
+
+  <div class="barre-outils">
+    <div class="recherche" id="recherche-conteneur">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <label class="sr-only" for="recherche">Rechercher un fichier</label>
+      <input type="search" id="recherche" placeholder="Rechercher un fichier…" autocomplete="off">
+      <button type="button" class="btn-icone effacer" id="btn-effacer" aria-label="Effacer la recherche" style="width:36px;height:36px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="filtres" id="filtres" role="group" aria-label="Filtrer par type de fichier"></div>
+  </div>
+
+  <div class="carte-table">
+    <div class="tableau-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" class="triable" data-col="nom" tabindex="0">Nom <span class="fleche" aria-hidden="true">▲</span></th>
+            <th scope="col" class="col-cachee-mobile triable" data-col="emplacement" tabindex="0">Emplacement <span class="fleche" aria-hidden="true">▲</span></th>
+            <th scope="col" class="col-cachee-mobile triable" data-col="type" tabindex="0">Type <span class="fleche" aria-hidden="true">▲</span></th>
+            <th scope="col" class="triable" data-col="taille" tabindex="0">Taille <span class="fleche" aria-hidden="true">▲</span></th>
+            <th scope="col" class="col-cachee-mobile triable" data-col="modifie" tabindex="0">Modifié <span class="fleche" aria-hidden="true">▲</span></th>
+            <th scope="col" class="col-action"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="corps-tableau"></tbody>
+      </table>
+    </div>
+    <div id="squelette">
+      <div class="squelette-ligne"><div class="squelette-nom squelette"><div class="squelette-barre"></div><div class="squelette-barre"></div></div></div>
+      <div class="squelette-ligne"><div class="squelette-nom squelette"><div class="squelette-barre"></div><div class="squelette-barre"></div></div></div>
+      <div class="squelette-ligne"><div class="squelette-nom squelette"><div class="squelette-barre"></div><div class="squelette-barre"></div></div></div>
+      <div class="squelette-ligne"><div class="squelette-nom squelette"><div class="squelette-barre"></div><div class="squelette-barre"></div></div></div>
+    </div>
+    <div class="etat etat-vide" id="etat-vide" hidden>
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.7.94L12.8 8H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+      <h2>Aucun fichier trouvé</h2>
+      <p id="message-vide">Aucun fichier ne correspond à votre recherche. Essayez un autre mot-clé ou réinitialisez les filtres.</p>
+    </div>
+    <div class="etat etat-erreur" id="etat-erreur" hidden>
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <h2>Impossible de charger la liste des fichiers</h2>
+      <p id="message-erreur"></p>
+    </div>
+  </div>
+
+  <p class="pied">
+    <span id="pied-maj"></span>
+    <span>Cliquez sur un en-tête de colonne pour trier.</span>
+  </p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Réglages ---------- */
+  var FICHIER_DONNEES = 'files.json';
+  var CHEMIN_DEFAUT = 'C:\\serveur_web_fichier';
+
+  /* ---------- Catégories ---------- */
+  var EXTENSIONS = {
+    image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'heic'],
+    video: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'wmv'],
+    audio: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma'],
+    pdf: ['pdf'],
+    doc: ['doc', 'docx', 'odt', 'txt', 'rtf', 'md', 'pages'],
+    tableau: ['xls', 'xlsx', 'ods', 'csv', 'numbers'],
+    presentation: ['ppt', 'pptx', 'odp', 'key'],
+    archive: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'],
+    code: ['html', 'css', 'js', 'json', 'php', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'sql', 'xml', 'yml', 'yaml', 'sh', 'ps1'],
+    exe: ['exe', 'msi', 'bat', 'apk', 'dll']
+  };
+  var LIBELLES = {
+    image: 'Image', video: 'Vidéo', audio: 'Audio', pdf: 'PDF', doc: 'Document',
+    tableau: 'Tableau', presentation: 'Présentation', archive: 'Archive',
+    code: 'Code', exe: 'Exécutable', autre: 'Fichier'
+  };
+  var ICONES = {
+    image: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L9 20"/></svg>',
+    video: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3"/></svg>',
+    audio: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+    pdf: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+    doc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>',
+    tableau: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>',
+    presentation: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h20v13H2zM8 21h8M12 16v5"/></svg>',
+    archive: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/></svg>',
+    code: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>',
+    exe: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>',
+    autre: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+  };
+
+  function categorieDe(nom) {
+    var m = /\.([a-z0-9]+)$/i.exec(nom);
+    if (!m) return 'autre';
+    var ext = m[1].toLowerCase();
+    for (var cat in EXTENSIONS) {
+      if (EXTENSIONS[cat].indexOf(ext) !== -1) return cat;
+    }
+    return 'autre';
+  }
+
+  /* ---------- Utilitaires ---------- */
+  function echap(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function normaliser(s) {
+    return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function formaterTaille(octets) {
+    if (octets == null || isNaN(octets)) return '—';
+    var u = ['o', 'Ko', 'Mo', 'Go', 'To'], i = 0, n = Number(octets);
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(1).replace('.', ',')) + ' ' + u[i];
+  }
+  function formaterDate(s) {
+    if (!s) return '—';
+    var d = new Date(s.replace(' ', 'T'));
+    if (isNaN(d)) return echap(s);
+    return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function cheminRepertoire(chemin) {
+    var i = chemin.lastIndexOf('/');
+    return i === -1 ? '' : chemin.slice(0, i);
+  }
+
+  /* ---------- État ---------- */
+  var etat = { fichiers: [], q: '', cat: 'tous', col: 'nom', dir: 1, maj: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- Thème ---------- */
+  var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  function appliquerTheme() {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('icone-theme').innerHTML = theme === 'dark'
+      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
+  $('btn-theme').addEventListener('click', function () { theme = theme === 'dark' ? 'light' : 'dark'; appliquerTheme(); });
+  appliquerTheme();
+
+  /* ---------- Chargement des données ---------- */
+  function chargerDonnees() {
+    afficherSquelette();
+    if (typeof window.FICHIERS_DATA === 'object' && window.FICHIERS_DATA) {
+      traiterDonnees(window.FICHIERS_DATA);
+      return;
+    }
+    fetch(FICHIER_DONNEES, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(traiterDonnees)
+      .catch(function (err) {
+        afficherErreur(
+          'Le fichier <code>' + FICHIER_DONNEES + '</code> est introuvable sur le serveur. ' +
+          'Exécutez le script <code>generer_fichiers.ps1</code> pour le créer, ou utilisez la version <code>index.php</code>.'
+        );
+      });
+  }
+
+  function traiterDonnees(donnees) {
+    var fichiers = (donnees && donnees.fichiers) || [];
+    fichiers = fichiers.filter(function (f) {
+      return f && f.nom && f.chemin;
+    });
+    etat.fichiers = fichiers.map(function (f) {
+      f.cat = categorieDe(f.nom);
+      return f;
+    });
+    etat.maj = (donnees && donnees.generes) || null;
+    if (donnees && donnees.dossier) {
+      $('chemin-dossier').textContent = donnees.dossier;
+    }
+    if (donnees && donnees.demo) {
+      $('banniere-demo').hidden = false;
+    }
+    if (etat.maj) {
+      $('pied-maj').textContent = 'Liste générée le ' + formaterDate(etat.maj) + '.';
+    }
+    construireFiltres();
+    rendre();
+  }
+
+  /* ---------- Filtres ---------- */
+  function construireFiltres() {
+    var conteneur = $('filtres');
+    conteneur.innerHTML = '';
+    var compteur = {};
+    etat.fichiers.forEach(function (f) { compteur[f.cat] = (compteur[f.cat] || 0) + 1; });
+    var cats = Object.keys(compteur).sort(function (a, b) {
+      return compteur[b] - compteur[a] || a.localeCompare(b, 'fr');
+    });
+    var boutons = [{ id: 'tous', label: 'Tous', nb: etat.fichiers.length }];
+    cats.forEach(function (c) { boutons.push({ id: c, label: LIBELLES[c] || c, nb: compteur[c] }); });
+    boutons.forEach(function (b) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'puce';
+      btn.setAttribute('aria-pressed', etat.cat === b.id ? 'true' : 'false');
+      btn.innerHTML = echap(b.label) + ' <span class="nb">' + b.nb + '</span>';
+      btn.addEventListener('click', function () {
+        etat.cat = b.id;
+        Array.prototype.forEach.call(conteneur.children, function (el) {
+          el.setAttribute('aria-pressed', el === btn ? 'true' : 'false');
+        });
+        rendre();
+      });
+      conteneur.appendChild(btn);
+    });
+  }
+
+  /* ---------- Tri ---------- */
+  var TRI = {
+    nom: function (a, b) { return a.nom.localeCompare(b.nom, 'fr', { numeric: true }); },
+    emplacement: function (a, b) { return a.chemin.localeCompare(b.chemin, 'fr', { numeric: true }); },
+    type: function (a, b) { return (LIBELLES[a.cat] || '').localeCompare(LIBELLES[b.cat] || '', 'fr') || TRI.nom(a, b); },
+    taille: function (a, b) { return (a.taille || 0) - (b.taille || 0); },
+    modifie: function (a, b) { return String(a.modifie || '').localeCompare(String(b.modifie || '')); }
+  };
+  document.querySelectorAll('thead th.triable').forEach(function (th) {
+    function activer() {
+      var col = th.getAttribute('data-col');
+      if (etat.col === col) { etat.dir *= -1; } else { etat.col = col; etat.dir = 1; }
+      document.querySelectorAll('thead th.triable').forEach(function (t) {
+        if (t.getAttribute('data-col') === etat.col) {
+          t.setAttribute('aria-sort', etat.dir === 1 ? 'ascending' : 'descending');
+        } else {
+          t.removeAttribute('aria-sort');
+        }
+      });
+      rendre();
+    }
+    th.addEventListener('click', activer);
+    th.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activer(); }
+    });
+  });
+
+  /* ---------- Recherche ---------- */
+  var champRecherche = $('recherche');
+  champRecherche.addEventListener('input', function () {
+    etat.q = normaliser(champRecherche.value.trim());
+    $('recherche-conteneur').classList.toggle('remplie', champRecherche.value !== '');
+    rendre();
+  });
+  $('btn-effacer').addEventListener('click', function () {
+    champRecherche.value = '';
+    etat.q = '';
+    $('recherche-conteneur').classList.remove('remplie');
+    champRecherche.focus();
+    rendre();
+  });
+
+  /* ---------- Rendu ---------- */
+  function afficherSquelette() {
+    $('squelette').hidden = false;
+    $('etat-vide').hidden = true;
+    $('etat-erreur').hidden = true;
+    $('corps-tableau').innerHTML = '';
+  }
+  function afficherErreur(message) {
+    $('squelette').hidden = true;
+    $('etat-vide').hidden = true;
+    $('etat-erreur').hidden = false;
+    $('message-erreur').innerHTML = message;
+    $('stats').innerHTML = '';
+  }
+
+  function rendre() {
+    var q = etat.q;
+    var liste = etat.fichiers.filter(function (f) {
+      if (etat.cat !== 'tous' && f.cat !== etat.cat) return false;
+      if (q && normaliser(f.nom).indexOf(q) === -1 && normaliser(f.chemin).indexOf(q) === -1) return false;
+      return true;
+    });
+    var tri = TRI[etat.col] || TRI.nom;
+    liste.sort(function (a, b) { return tri(a, b) * etat.dir; });
+
+    var corps = $('corps-tableau');
+    $('squelette').hidden = true;
+    $('etat-erreur').hidden = true;
+
+    if (liste.length === 0) {
+      corps.innerHTML = '';
+      $('etat-vide').hidden = false;
+      $('message-vide').textContent = etat.q || etat.cat !== 'tous'
+        ? 'Aucun fichier ne correspond à votre recherche. Essayez un autre mot-clé ou réinitialisez les filtres.'
+        : 'Le dossier ne contient aucun fichier.';
+    } else {
+      $('etat-vide').hidden = true;
+      var html = '';
+      liste.forEach(function (f) {
+        var rep = cheminRepertoire(f.chemin);
+        var cat = f.cat;
+        html += '<tr>'
+          + '<td><div class="cell-nom"><span class="cat-' + cat + '">' + ICONES[cat] + '</span>'
+          + '<a class="lien-nom" href="' + echap(encodeURI(f.chemin)) + '" title="Ouvrir ' + echap(f.nom) + '">' + echap(f.nom) + '</a></div></td>'
+          + '<td class="emplacement col-cachee-mobile">' + (rep ? echap(rep) : '—') + '</td>'
+          + '<td class="type col-cachee-mobile">' + (LIBELLES[cat] || 'Fichier') + '</td>'
+          + '<td class="taille">' + formaterTaille(f.taille) + '</td>'
+          + '<td class="modifie col-cachee-mobile">' + formaterDate(f.modifie) + '</td>'
+          + '<td class="action"><a class="btn-telecharger" href="' + echap(encodeURI(f.chemin)) + '" download="' + echap(f.nom) + '" title="Télécharger ' + echap(f.nom) + '" aria-label="Télécharger ' + echap(f.nom) + '">'
+          + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>'
+          + '<span class="libelle-btn">Télécharger</span></a></td>'
+          + '</tr>';
+      });
+      corps.innerHTML = html;
+    }
+
+    // Statistiques
+    var total = etat.fichiers.reduce(function (s, f) { return s + (Number(f.taille) || 0); }, 0);
+    var nbDossiers = {};
+    etat.fichiers.forEach(function (f) { var r = cheminRepertoire(f.chemin); if (r) nbDossiers[r] = 1; });
+    var nbRep = Object.keys(nbDossiers).length;
+    $('stats').innerHTML =
+      '<span class="stat"><b>' + etat.fichiers.length + '</b> fichier' + (etat.fichiers.length > 1 ? 's' : '') + '</span>'
+      + (nbRep ? '<span class="stat"><b>' + nbRep + '</b> dossier' + (nbRep > 1 ? 's' : '') + '</span>' : '')
+      + '<span class="stat">Total : <b>' + formaterTaille(total) + '</b></span>'
+      + (liste.length !== etat.fichiers.length ? '<span class="stat"><b>' + liste.length + '</b> affiché' + (liste.length > 1 ? 's' : '') + '</span>' : '');
+  }
+
+  /* ---------- Démarrage ---------- */
+  $('btn-actualiser').addEventListener('click', chargerDonnees);
+  if (typeof window.FICHIERS_DATA === 'undefined') { window.FICHIERS_DATA = null; } /* surchargé par index.php le cas échéant */
+  chargerDonnees();
+})();
+</script>
+</body>
+</html>
